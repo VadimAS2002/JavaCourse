@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.model.Task;
 import com.example.demo.service.TaskService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,23 +14,30 @@ import java.util.List;
 public class TaskController {
     private final TaskService taskService;
 
+    @Autowired
     public TaskController(TaskService taskService) {
         this.taskService = taskService;
     }
 
     @GetMapping("/pending")
     public ResponseEntity<List<Task>> getPendingTasks() {
-        return ResponseEntity.ok(taskService.getPendingTasks());
+        List<Task> tasks = taskService.getPendingTasks();
+        return ResponseEntity.ok(tasks);
     }
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Task>> getAllTasksByUserId(@PathVariable Long userId) {
-        return ResponseEntity.ok(taskService.getAllTasksByUserId(userId));
+        List<Task> tasks = taskService.getAllTasksByUserId(userId);
+        return ResponseEntity.ok(tasks);
     }
 
     @PostMapping
-    public ResponseEntity<Task> createTask(@RequestBody Task task) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(taskService.createTask(task));
+    public ResponseEntity<Task> createTask(@RequestBody Task task, @RequestParam Long userId) {
+        Task createdTask = taskService.createTask(task, userId);
+        if (createdTask == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdTask);
     }
 
     @DeleteMapping("/{id}")

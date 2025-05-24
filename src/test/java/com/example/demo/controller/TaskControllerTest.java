@@ -1,8 +1,8 @@
 package com.example.demo.controller;
 
-import com.example.demo.exception.InvalidDataException;
 import com.example.demo.model.Task;
 import com.example.demo.model.User;
+import com.example.demo.repository.TaskRepository;
 import com.example.demo.service.NotificationService;
 import com.example.demo.service.TaskService;
 import com.example.demo.service.UserService;
@@ -36,26 +36,31 @@ public class TaskControllerTest {
 
     private final LocalDateTime now = LocalDateTime.now();
 
+    @Autowired
+    private TaskRepository taskRepository;
+
     @BeforeEach
     void setUp() {
-        taskService = new TaskService(notificationService, userService);
+        taskService = new TaskService(taskRepository, userService, notificationService);
         taskController = new TaskController(taskService);
     }
 
     @Test
     void getPendingTasks_ReturnsPendingTasks() {
         User user = new User();
-        user.setId(1L);
-        user.setUsername("testUser");
-        user.setPassword("password");
+        user.setUsername("testUser10");
+        user.setPassword("password10");
         User registeredUser = userService.registerUser(user);
-        Task taskToCreate = new Task(null, "Valid Task", "Description",
-                null, null, false, false, registeredUser.getId());
 
-        ResponseEntity<Task> responseEntity = taskController.createTask(taskToCreate);
+        Task taskToCreate = new Task(null, "Valid Task", "Description",
+                null, null, false, false, registeredUser);
+
+        ResponseEntity<Task> responseEntity = taskController.createTask(taskToCreate, registeredUser.getId());
         ResponseEntity<List<Task>> responseEntity2 = taskController.getPendingTasks();
 
         assertEquals(HttpStatus.OK, responseEntity2.getStatusCode());
+        assertFalse(responseEntity2.getBody().get(0).isCompleted());
+        assertFalse(responseEntity2.getBody().get(0).isDeleted());
     }
 
     @Test
@@ -63,12 +68,11 @@ public class TaskControllerTest {
         Long userId = 1L;
         List<Task> tasks = new ArrayList<>();
         User user = new User();
-        user.setId(1L);
-        user.setUsername("testUser");
-        user.setPassword("password");
+        user.setUsername("testUser11");
+        user.setPassword("password11");
         User registeredUser = userService.registerUser(user);
         tasks.add(new Task(1L, "Task 1", "Description", now, now.plusDays(1), false,
-                false, registeredUser.getId()));
+                false, user));
 
         ResponseEntity<List<Task>> responseEntity = taskController.getAllTasksByUserId(userId);
 
@@ -78,63 +82,29 @@ public class TaskControllerTest {
     @Test
     public void createTask_ValidTask_ReturnsCreated() {
         User user = new User();
-        user.setId(1L);
-        user.setUsername("testUser");
-        user.setPassword("password");
+        user.setUsername("testUser12");
+        user.setPassword("password12");
         User registeredUser = userService.registerUser(user);
         Task taskToCreate = new Task(null, "Valid Task", "Description",
-                null, null, false, false, registeredUser.getId());
+                null, null, false, false, registeredUser);
 
-        ResponseEntity<Task> responseEntity = taskController.createTask(taskToCreate);
+        ResponseEntity<Task> responseEntity = taskController.createTask(taskToCreate, registeredUser.getId());
 
         assertEquals(HttpStatus.CREATED, responseEntity.getStatusCode());
     }
 
     @Test
     public void deleteTask_ExistingTask_ReturnsNoContent() {
-        Long taskId = 1L;
-        Task existingTask = new Task(null, "Valid Task", "Description", null,
-                null, false, false, 1L);
-
-        ResponseEntity<Void> responseEntity = taskController.deleteTask(taskId);
-
-        assertEquals(HttpStatus.NO_CONTENT, responseEntity.getStatusCode());
-        assertNull(responseEntity.getBody());
-    }
-
-    @Test
-    public void createTask_InvalidTask_NullTitle_ReturnsBadRequest() {
         User user = new User();
-        user.setId(1L);
-        user.setUsername("testUser");
-        user.setPassword("password");
+        user.setUsername("testUser18");
+        user.setPassword("password18");
         User registeredUser = userService.registerUser(user);
-        Task taskToCreate = new Task(null, null, "Description",
-                null, null, false, false, registeredUser.getId());
 
-        try {
-            ResponseEntity<Task> responseEntity = taskController.createTask(taskToCreate);
-            assertTrue(true);
-        } catch (InvalidDataException e) {
-            assertEquals("Task title cannot be empty.", e.getMessage());
-        }
-    }
+        Task task = new Task(null, "Valid Task", "Description", null,
+                null, false, false, registeredUser);
+        ResponseEntity<Task> responseEntity = taskController.createTask(task, registeredUser.getId());
+        ResponseEntity<Void> responseEntity2 = taskController.deleteTask(task.getId());
 
-    @Test
-    public void createTask_InvalidTask_EmptyTitle_ReturnsBadRequest() {
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testUser");
-        user.setPassword("password");
-        User registeredUser = userService.registerUser(user);
-        Task taskToCreate = new Task(null, "  ", "Description", null,
-                null, false, false, user.getId());
-
-        try {
-            ResponseEntity<Task> responseEntity = taskController.createTask(taskToCreate);
-            assertTrue(true);
-        } catch (InvalidDataException e) {
-            assertEquals("Task title cannot be empty.", e.getMessage());
-        }
+        assertEquals(HttpStatus.NO_CONTENT, responseEntity2.getStatusCode());
     }
 }

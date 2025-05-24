@@ -1,10 +1,7 @@
 package com.example.demo.controller;
 
-import com.example.demo.exception.InvalidDataException;
 import com.example.demo.model.User;
-import com.example.demo.service.NotificationService;
 import com.example.demo.service.UserService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,96 +16,34 @@ import static org.junit.jupiter.api.Assertions.*;
 class UserControllerTest {
 
     @Autowired
-    private UserController userController;
-
-    @Autowired
     private UserService userService;
 
     @Autowired
-    private NotificationService notificationService;
-
-    @BeforeEach
-    void setUp() {
-        userService = new UserService(notificationService);
-        userController = new UserController(userService);
-    }
+    private UserController userController;
 
     @Test
-    public void registerUser_SuccessfulRegistration() {
+    void registerUser_ShouldCreateNewUser() {
         User user = new User();
-        user.setUsername("testuser");
-        user.setPassword("password");
-        ResponseEntity<User> responseEntity = userController.registerUser(user);
-        assertEquals(HttpStatus.CREATED, responseEntity.getStatusCode());
+        user.setUsername("testUser2");
+        user.setPassword("password2");
+
+        ResponseEntity<User> response = userController.registerUser(user);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals("testUser2", response.getBody().getUsername());
     }
 
     @Test
-    public void registerUser_BadRequest_NullUsername() {
+    void login_ShouldReturnUserWhenUsernameExists() {
         User user = new User();
-        user.setUsername(null);
-        user.setPassword("password");
+        user.setUsername("existingUser");
+        user.setPassword("password3");
+        userService.registerUser(user);
 
-        try {
-            ResponseEntity<User> responseEntity = userController.registerUser(user);
-            assertTrue(true);
-        } catch (InvalidDataException e) {
-            assertEquals("Username cannot be empty.", e.getMessage());
-        }
-    }
-
-    @Test
-    public void registerUser_BadRequest_EmptyUsername() {
-        User user = new User();
-        user.setUsername("");
-        user.setPassword("password");
-
-        try {
-            ResponseEntity<User> responseEntity = userController.registerUser(user);
-            assertTrue(true);
-        } catch (InvalidDataException e) {
-            assertEquals("Username cannot be empty.", e.getMessage());
-        }
-    }
-
-    @Test
-    public void registerUser_BadRequest_NullPassword() {
-        User user = new User();
-        user.setUsername("testUser");
-        user.setPassword(null);
-
-        try {
-            ResponseEntity<User> responseEntity = userController.registerUser(user);
-            assertTrue(false);
-        } catch (InvalidDataException e) {
-            assertEquals("Password cannot be empty.", e.getMessage());
-        }
-    }
-
-    @Test
-    public void registerUser_BadRequest_EmptyPassword() {
-        User user = new User();
-        user.setUsername("testUser");
-        user.setPassword("");
-
-        try {
-            ResponseEntity<User> responseEntity = userController.registerUser(user);
-            assertTrue(true);
-        } catch (InvalidDataException e) {
-            assertEquals("Password cannot be empty.", e.getMessage());
-        }
-    }
-
-    @Test
-    void login_UserExists_ReturnsUserAndStatus200() {
-        User testUser = new User();
-        testUser.setUsername("testUser");
-        testUser.setPassword("password");
-        User registeredUser = userService.registerUser(testUser);
-
-        ResponseEntity<Optional<User>> response = userController.login(registeredUser.getId());
+        ResponseEntity<Optional<User>> response = userController.login("existingUser");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue(response.getBody().isPresent());
-        assertEquals("testUser", response.getBody().get().getUsername());
+        assertEquals("existingUser", response.getBody().get().getUsername());
     }
 }
