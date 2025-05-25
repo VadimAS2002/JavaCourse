@@ -1,7 +1,4 @@
-FROM gradle:8.4-jdk17 AS builder
-
-RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf
-RUN echo "nameserver 8.8.4.4" >> /etc/resolv.conf
+FROM gradle:8.4-jdk20 AS builder
 
 WORKDIR /workspace
 
@@ -13,7 +10,7 @@ COPY src src
 
 RUN gradle --no-daemon clean bootJar -x test
 
-FROM eclipse-temurin:17-jdk-jammy AS runtime
+FROM eclipse-temurin:20-jdk-jammy AS runtime
 WORKDIR /app
 
 COPY --from=builder  /workspace/build/libs/*.jar app.jar
