@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import com.example.demo.model.*;
 import com.example.demo.repository.TaskRepository;
+import org.springframework.cache.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,10 +27,15 @@ public class TaskService {
         return taskRepository.findByCompletedFalseAndDeletedFalse();
     }
 
+    @Cacheable(value = "tasksByUserId", key = "#userId")
     public List<Task> getAllTasksByUserId(Long userId) {
             return taskRepository.findByUserId(userId);
     }
 
+    @Caching(
+            put = { @CachePut(value = "tasks", key = "#result.id") },
+            evict = { @CacheEvict(value = "tasksByUserId", key = "#userId") }
+    )
     public Task createTask(Task task, Long userId) {
         Optional<User> userOptional = userService.getUserById(userId);
         User user = userOptional.orElse(null);
@@ -43,6 +49,7 @@ public class TaskService {
         return createdTask;
     }
 
+    @CacheEvict(value = "tasksByUserId", key = "#userId")
     public void deleteTask(Long id) {
         Task task = taskRepository.findById(id).orElse(null);
         if (task != null) {

@@ -18,3 +18,14 @@ COPY --from=builder  /workspace/build/libs/*.jar app.jar
 EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
+
+FROM eclipse-temurin:20-jdk-jammy AS runtime
+WORKDIR /app
+
+COPY --from=builder  /workspace/build/libs/*.jar app.jar
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
