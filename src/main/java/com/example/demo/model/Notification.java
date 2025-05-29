@@ -19,6 +19,10 @@ public class Notification {
         this.userId = userId;
     }
 
+    public Notification() {
+
+    }
+
     public Object getUserId() {
         return userId;
     }
@@ -39,15 +43,11 @@ public class Notification {
         this.id = id;
     }
 
-    public Long getId() {
-        return id;
+    public String getMessage() {
+        return message;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
-
-    public LocalDateTime getTimestamp() {
-        return timestamp;
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

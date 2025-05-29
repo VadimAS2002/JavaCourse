@@ -2,17 +2,30 @@ package com.example.demo.model;
 
 import lombok.Data;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class Task {
     private Long id;
     private String title;
     private String description;
-    private LocalDate creationDate;
-    private LocalDate targetDate;
+    private LocalDateTime creationDate;
+    private LocalDateTime targetDate;
     private boolean completed;
     private boolean deleted;
     private Long userId;
+
+    public Task(Long id, String title, String description, LocalDateTime creationDate, LocalDateTime targetDate,
+                boolean completed, boolean deleted, Long userId) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.creationDate = creationDate;
+        this.targetDate = targetDate;
+        this.completed = completed;
+        this.deleted = deleted;
+        this.userId = userId;
+    }
 
     public boolean isDeleted() {
         return deleted;
@@ -34,10 +47,6 @@ public class Task {
         return completed;
     }
 
-    public void setCompleted(boolean completed) {
-        this.completed = completed;
-    }
-
     public void setId(Long id) {
         this.id = id;
     }
@@ -50,15 +59,7 @@ public class Task {
         return description;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
     public String getTitle() {
         return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
     }
 }
