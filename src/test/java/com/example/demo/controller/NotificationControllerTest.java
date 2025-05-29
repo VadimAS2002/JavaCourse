@@ -1,6 +1,8 @@
 package com.example.demo.controller;
 
 import com.example.demo.model.Notification;
+import com.example.demo.model.User;
+import com.example.demo.repository.NotificationRepository;
 import com.example.demo.service.NotificationService;
 import com.example.demo.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,47 +26,54 @@ public class NotificationControllerTest {
     private NotificationService notificationService;
 
     @Autowired
+    private NotificationRepository notificationRepository;
+
+    @Autowired
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        notificationService = new NotificationService();
+        notificationRepository.deleteAll();
+        notificationService = new NotificationService(notificationRepository);
         notificationController = new NotificationController(notificationService);
     }
 
     @Test
     void getAllNotificationsForUser_ReturnsNotifications() {
-        Long userId = 1L;
-        Notification notification1 = new Notification();
-        notification1.setUserId(userId);
-        notification1.setMessage("Notification 1");
-        notificationService.createNotification(userId, "Notification 1");
+        User user = new User();
+        user.setUsername("testUser16");
+        user.setPassword("password16");
+        User registeredUser = userService.registerUser(user);
 
-        Notification notification2 = new Notification();
-        notification2.setUserId(userId);
-        notification2.setMessage("Notification 2");
-        notificationService.createNotification(userId, "Notification 2");
+        notificationService.createNotification(registeredUser, "Notification 1");
+        notificationService.createNotification(registeredUser, "Notification 2");
 
-        ResponseEntity<List<Notification>> response = notificationController.getAllNotificationsForUser(userId);
+        ResponseEntity<List<Notification>> response = notificationController.getAllNotificationsForUser(user.getId());
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(2, response.getBody().size());
-        assertEquals("Notification 1", response.getBody().get(0).getMessage());
-        assertEquals("Notification 2", response.getBody().get(1).getMessage());
+        assertEquals(3, response.getBody().size());
+        assertTrue(response.getBody().get(0).getMessage().contains("User"));
+        assertEquals("Notification 1", response.getBody().get(1).getMessage());
+        assertEquals("Notification 2", response.getBody().get(2).getMessage());
     }
 
     @Test
     void getPendingNotificationsForUser_ReturnsPendingNotifications() {
-        notificationService.createNotification(1L, "Pending Notification");
+        User user = new User();
+        user.setUsername("testUser17");
+        user.setPassword("password17");
+        User registeredUser = userService.registerUser(user);
 
-        notificationService.createNotification(1L, "Pending Notification");
+        notificationService.createNotification(registeredUser, "Pending Notification");
+        notificationService.createNotification(registeredUser, "Pending Notification");
 
         ResponseEntity<List<Notification>> response = notificationController.getPendingNotificationsForUser();
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(2, response.getBody().size());
-        assertEquals("Pending Notification", response.getBody().get(0).getMessage());
+        assertTrue(response.getBody().get(0).isRead());
+        assertTrue(response.getBody().get(1).isRead());
+        assertTrue(response.getBody().get(2).isRead());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 }

@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.model.User;
 import com.example.demo.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,17 +14,18 @@ import java.util.Optional;
 public class UserController {
     private final UserService userService;
 
+    @Autowired
     public UserController(UserService userService) {
         this.userService = userService;
     }
 
-    @GetMapping("/login/{id}")
-    public ResponseEntity<Optional<User>> login(@PathVariable Long id) {
-        Optional<User> user = Optional.ofNullable(userService.getUserById(id));
-        if (user.isPresent()) {
-            return ResponseEntity.ok(user);
+    @GetMapping("/login/{username}")
+    public ResponseEntity<Optional<User>> login(@PathVariable String username) {
+        Optional<User> user = userService.getUserByUsername(username);
+        if (user.isEmpty()) {
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(user);
     }
 
     @PostMapping("/register")

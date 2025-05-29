@@ -1,46 +1,46 @@
 package com.example.demo.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
+@Entity
+@Table(name = "notifications")
 public class Notification {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(nullable = false)
     private String message;
-    private LocalDateTime timestamp;
+    @Column(nullable = false)
+    private LocalDateTime timeStamp;
+    @Column(nullable = false)
     private boolean read;
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    @JsonBackReference
+    private User user;
 
-    public Notification(Long id, String message, Long userId, boolean read, LocalDateTime timestamp) {
+    public Notification(Long id, String message, User user, boolean read, LocalDateTime timeStamp) {
         this.id = id;
         this.message = message;
-        this.timestamp = timestamp;
+        this.timeStamp = timeStamp;
         this.read = read;
-        this.userId = userId;
+        this.user = user;
     }
 
     public Notification() {
 
     }
 
-    public Object getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public boolean isRead() {
-        return read;
+    public void setUser(User user) {
+        this.user = user;
     }
 
     public void setRead(boolean read) {
         this.read = read;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public String getMessage() {
@@ -49,5 +49,13 @@ public class Notification {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public void setTimeStamp(LocalDateTime timeStamp) {
+        this.timeStamp = timeStamp;
+    }
+
+    public boolean isRead() {
+        return read;
     }
 }
