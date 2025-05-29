@@ -2,48 +2,88 @@ package com.example.demo.controller;
 
 import com.example.demo.model.User;
 import com.example.demo.service.UserService;
+
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
-@SpringBootTest
-class UserControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class UserControllerTest {
 
-    @Autowired
+    @Mock
     private UserService userService;
 
-    @Autowired
+    @InjectMocks
     private UserController userController;
 
     @Test
-    void registerUser_ShouldCreateNewUser() {
-        User user = new User();
-        user.setUsername("testUser2");
-        user.setPassword("password2");
+    void registerUser_ShouldCreateNewUserAndReturnCreatedStatus() {
+        User testUser = new User();
+        testUser.setUsername("testuser");
+        testUser.setPassword("password");
 
-        ResponseEntity<User> response = userController.registerUser(user);
+        User savedUser = new User();
+        savedUser.setId(1L);
+        savedUser.setUsername("testuser");
+        savedUser.setPassword("encodedPassword");
+
+        when(userService.registerUser(any(User.class))).thenReturn(savedUser);
+
+        ResponseEntity<User> response = userController.registerUser(testUser);
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertEquals("testUser2", response.getBody().getUsername());
+        assertEquals(savedUser, response.getBody());
     }
 
     @Test
-    void login_ShouldReturnUserWhenUsernameExists() {
-        User user = new User();
-        user.setUsername("existingUser");
-        user.setPassword("password3");
-        userService.registerUser(user);
+    void registerUser_ShouldReturnInternalServerErrorIfRegistrationFails() {
+        User testUser = new User();
+        testUser.setUsername("testuser");
+        testUser.setPassword("password");
 
-        ResponseEntity<Optional<User>> response = userController.login("existingUser");
+        when(userService.registerUser(any(User.class))).thenReturn(null);
+
+        ResponseEntity<User> response = userController.registerUser(testUser);
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertNull(response.getBody());
+    }
+
+    @Test
+    void login_ShouldReturnUserIfExists() {
+        User testUser = new User();
+        testUser.setId(1L);
+        testUser.setUsername("testuser");
+        testUser.setPassword("password");
+
+        when(userService.getUserByUsername("testuser")).thenReturn(Optional.of(testUser));
+
+        ResponseEntity<Optional<User>> response = userController.login("testuser");
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue(response.getBody().isPresent());
-        assertEquals("existingUser", response.getBody().get().getUsername());
+        assertEquals(testUser, response.getBody().get());
+    }
+
+    @Test
+    void login_ShouldReturnNotFoundIfUserDoesNotExist() {
+        when(userService.getUserByUsername("nonexistentuser")).thenReturn(Optional.empty());
+
+        ResponseEntity<Optional<User>> response = userController.login("nonexistentuser");
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNull(response.getBody());
     }
 }

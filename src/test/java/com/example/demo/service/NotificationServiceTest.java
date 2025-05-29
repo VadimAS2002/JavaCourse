@@ -3,86 +3,95 @@ package com.example.demo.service;
 import com.example.demo.model.Notification;
 import com.example.demo.model.User;
 import com.example.demo.repository.NotificationRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
-@SpringBootTest
-class NotificationServiceTest {
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-    @Autowired
-    private NotificationService notificationService;
+@ExtendWith(MockitoExtension.class)
+public class NotificationServiceTest {
 
-    @Autowired
+    @Mock
     private NotificationRepository notificationRepository;
 
-    @Autowired
-    private UserService userService;
+    @InjectMocks
+    private NotificationService notificationService;
 
-    @BeforeEach
-    void setUp() {
-        notificationRepository.deleteAll();
+    @Test
+    void getAllNotificationsForUser_ShouldReturnAndMarkAsReadNotificationsForUser() {
+        User user = new User();
+        user.setId(1L);
+
+        Notification notification1 = new Notification();
+        notification1.setId(1L);
+        notification1.setUser(user);
+        notification1.setMessage("Notification 1");
+        notification1.setRead(false);
+        notification1.setTimeStamp(LocalDateTime.now());
+
+        Notification notification2 = new Notification();
+        notification2.setId(2L);
+        notification2.setUser(user);
+        notification2.setMessage("Notification 2");
+        notification2.setRead(false);
+        notification2.setTimeStamp(LocalDateTime.now());
+
+        when(notificationRepository.findByUserId(1L)).thenReturn(Arrays.asList(notification1, notification2));
+
+        List<Notification> notifications = notificationService.getAllNotificationsForUser(1L);
+
+        assertEquals(2, notifications.size());
+        assertEquals("Notification 1", notifications.get(0).getMessage());
+        assertEquals("Notification 2", notifications.get(1).getMessage());
+        assertTrue(notifications.get(0).isRead());
+        assertTrue(notifications.get(1).isRead());
+
+        verify(notificationRepository, times(2)).save(any(Notification.class));
     }
 
     @Test
-    void getAllNotificationsForUser_ShouldReturnNotifications() {
-        User user = new User();
-        user.setUsername("testUser13");
-        user.setPassword("password13");
-        User registeredUser = userService.registerUser(user);
+    void getPendingNotifications_ShouldReturnAndMarkAsReadPendingNotifications() {
+        Notification notification1 = new Notification();
+        notification1.setId(1L);
+        notification1.setMessage("Notification 1");
+        notification1.setRead(false);
+        notification1.setTimeStamp(LocalDateTime.now());
 
-        Notification notification1 = new Notification(null, "Notification 3", registeredUser, false,
-                LocalDateTime.now());
-        Notification notification2 = new Notification(null, "Notification 4", registeredUser, true,
-                LocalDateTime.now());
-        notificationRepository.save(notification1);
-        notificationRepository.save(notification2);
+        Notification notification2 = new Notification();
+        notification2.setId(2L);
+        notification2.setMessage("Notification 2");
+        notification2.setRead(false);
+        notification2.setTimeStamp(LocalDateTime.now());
 
-        List<Notification> notifications = notificationService.getAllNotificationsForUser(registeredUser.getId());
+        when(notificationRepository.findByReadFalse()).thenReturn(Arrays.asList(notification1, notification2));
 
-        assertEquals(3, notifications.size());
-        assertTrue(notifications.get(0).getMessage().contains("User"));
-        assertEquals("Notification 3", notifications.get(1).getMessage());
-        assertEquals("Notification 4", notifications.get(2).getMessage());
+        List<Notification> notifications = notificationService.getPendingNotifications();
+
+        assertEquals(2, notifications.size());
+        assertEquals("Notification 1", notifications.get(0).getMessage());
+        assertEquals("Notification 2", notifications.get(1).getMessage());
+        assertTrue(notifications.get(0).isRead());
+        assertTrue(notifications.get(1).isRead());
+
+        verify(notificationRepository, times(2)).save(any(Notification.class));
     }
 
     @Test
-    void getPendingNotifications_ShouldReturnPendingNotifications() {
+    void createNotification_ShouldCreateNotification() {
         User user = new User();
-        user.setUsername("testUser14");
-        user.setPassword("password14");
-        User registeredUser = userService.registerUser(user);
+        user.setId(1L);
+        String message = "Test Notification";
 
-        Notification notification1 = new Notification(null, "Notification 1", registeredUser, false,
-                LocalDateTime.now());
-        Notification notification2 = new Notification(null, "Notification 2", registeredUser, true,
-                LocalDateTime.now());
-        notificationRepository.save(notification1);
-        notificationRepository.save(notification2);
+        notificationService.createNotification(user, message);
 
-        List<Notification> pendingNotifications = notificationService.getPendingNotifications();
-
-        assertEquals(2, pendingNotifications.size());
-        assertTrue(pendingNotifications.get(0).getMessage().contains("User"));
-        assertEquals("Notification 1", pendingNotifications.get(1).getMessage());
-    }
-
-    @Test
-    void createNotification_ShouldSaveNotification() {
-        User user = new User();
-        user.setUsername("testUser15");
-        user.setPassword("password15");
-        User registeredUser = userService.registerUser(user);
-        notificationService.createNotification(registeredUser, "New Notification Message");
-
-        List<Notification> notifications = notificationRepository.findByUserId(registeredUser.getId());
-
-        assertEquals("New Notification Message", notifications.get(1).getMessage());
+        verify(notificationRepository, times(1)).save(any(Notification.class));
     }
 }

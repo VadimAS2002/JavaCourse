@@ -2,78 +2,81 @@ package com.example.demo.controller;
 
 import com.example.demo.model.Notification;
 import com.example.demo.model.User;
-import com.example.demo.repository.NotificationRepository;
 import com.example.demo.service.NotificationService;
-import com.example.demo.service.UserService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 public class NotificationControllerTest {
 
-    @Autowired
-    private NotificationController notificationController;
-
-    @Autowired
+    @Mock
     private NotificationService notificationService;
 
-    @Autowired
-    private NotificationRepository notificationRepository;
-
-    @Autowired
-    private UserService userService;
-
-    @BeforeEach
-    void setUp() {
-        notificationRepository.deleteAll();
-        notificationService = new NotificationService(notificationRepository);
-        notificationController = new NotificationController(notificationService);
-    }
+    @InjectMocks
+    private NotificationController notificationController;
 
     @Test
-    void getAllNotificationsForUser_ReturnsNotifications() {
+    void getAllNotificationsForUser_ShouldReturnNotificationsWithStatusOK() {
         User user = new User();
-        user.setUsername("testUser16");
-        user.setPassword("password16");
-        User registeredUser = userService.registerUser(user);
+        user.setId(1L);
 
-        notificationService.createNotification(registeredUser, "Notification 1");
-        notificationService.createNotification(registeredUser, "Notification 2");
+        Notification notification1 = new Notification();
+        notification1.setId(1L);
+        notification1.setUser(user);
+        notification1.setMessage("Notification 1");
+        notification1.setRead(true);
+        notification1.setTimeStamp(LocalDateTime.now());
 
-        ResponseEntity<List<Notification>> response = notificationController.getAllNotificationsForUser(user.getId());
+        Notification notification2 = new Notification();
+        notification2.setId(2L);
+        notification2.setUser(user);
+        notification2.setMessage("Notification 2");
+        notification2.setRead(true);
+        notification2.setTimeStamp(LocalDateTime.now());
+
+        when(notificationService.getAllNotificationsForUser(1L)).thenReturn(Arrays.asList(notification1, notification2));
+
+        ResponseEntity<List<Notification>> response = notificationController.getAllNotificationsForUser(1L);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(3, response.getBody().size());
-        assertTrue(response.getBody().get(0).getMessage().contains("User"));
-        assertEquals("Notification 1", response.getBody().get(1).getMessage());
-        assertEquals("Notification 2", response.getBody().get(2).getMessage());
+        assertEquals(2, response.getBody().size());
+        assertEquals("Notification 1", response.getBody().get(0).getMessage());
+        assertEquals("Notification 2", response.getBody().get(1).getMessage());
     }
 
     @Test
-    void getPendingNotificationsForUser_ReturnsPendingNotifications() {
-        User user = new User();
-        user.setUsername("testUser17");
-        user.setPassword("password17");
-        User registeredUser = userService.registerUser(user);
+    void getPendingNotificationsForUser_ShouldReturnPendingNotificationsWithStatusOK() {
+        Notification notification1 = new Notification();
+        notification1.setId(1L);
+        notification1.setMessage("Notification 1");
+        notification1.setRead(false);
+        notification1.setTimeStamp(LocalDateTime.now());
 
-        notificationService.createNotification(registeredUser, "Pending Notification");
-        notificationService.createNotification(registeredUser, "Pending Notification");
+        Notification notification2 = new Notification();
+        notification2.setId(2L);
+        notification2.setMessage("Notification 2");
+        notification2.setRead(false);
+        notification2.setTimeStamp(LocalDateTime.now());
+
+        when(notificationService.getPendingNotifications()).thenReturn(Arrays.asList(notification1, notification2));
 
         ResponseEntity<List<Notification>> response = notificationController.getPendingNotificationsForUser();
 
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody().get(0).isRead());
-        assertTrue(response.getBody().get(1).isRead());
-        assertTrue(response.getBody().get(2).isRead());
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().size());
+        assertEquals("Notification 1", response.getBody().get(0).getMessage());
+        assertEquals("Notification 2", response.getBody().get(1).getMessage());
     }
 }

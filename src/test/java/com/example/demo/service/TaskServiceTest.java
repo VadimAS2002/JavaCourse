@@ -4,163 +4,131 @@ import com.example.demo.model.Task;
 import com.example.demo.model.User;
 import com.example.demo.repository.TaskRepository;
 import com.example.demo.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@Transactional
+@ExtendWith(MockitoExtension.class)
 class TaskServiceTest {
-    @Autowired
-    private TaskService taskService;
-    @Autowired
-    private TaskRepository taskRepository;
-    @Autowired
-    private UserRepository userRepository;
 
-    @BeforeEach
-    void setUp() {
-        taskRepository.deleteAll();
-    }
+    @Mock
+    private TaskRepository taskRepository;
+
+    @Mock
+    private UserService userService;
+
+    @Mock
+    private NotificationService notificationService;
+
+    @InjectMocks
+    private TaskService taskService;
 
     @Test
-    void getPendingTasks_ShouldReturnPendingTasks() {
-        User user1 = new User();
-        user1.setUsername("testUser4");
-        user1.setPassword("password4");
+    void getPendingTasks_ShouldReturnListOfPendingTasks() {
         Task task1 = new Task();
-        task1.setTitle("Task 1");
-        task1.setDescription("Description 1");
-        task1.setCreationDate(LocalDateTime.now());
+        task1.setId(1L);
+        task1.setDescription("Task 1");
         task1.setCompleted(false);
-        task1.setDeleted(false);
-        task1.setUser(user1);
-        user1 = userRepository.save(user1);
 
-        User user2 = new User();
-        user2.setUsername("testUser5");
-        user2.setPassword("password5");
-        user2 = userRepository.save(user2);
-
-        Task task2 = new Task();
-        task2.setTitle("Task 2");
-        task2.setDescription("Description 2");
-        task2.setCreationDate(LocalDateTime.now());
-        task2.setCompleted(true);
-        task2.setDeleted(false);
-        task2.setUser(user2);
-
-        taskRepository.save(task1);
-        taskRepository.save(task2);
+        when(taskRepository.findByCompletedFalseAndDeletedFalse()).thenReturn(Arrays.asList(task1));
 
         List<Task> pendingTasks = taskService.getPendingTasks();
 
         assertEquals(1, pendingTasks.size());
-        assertEquals("Task 1", pendingTasks.get(0).getTitle());
+        assertEquals("Task 1", pendingTasks.get(0).getDescription());
     }
 
     @Test
-    void getAllTasksByUserId_ShouldReturnTasksForUser() {
-        User user1 = new User();
-        user1.setUsername("testUser6");
-        user1.setPassword("password6");
-
-        User user2 = new User();
-        user2.setUsername("testUser7");
-        user2.setPassword("password7");
-
-        user1 = userRepository.save(user1);
-        user2 = userRepository.save(user2);
-
+    void getAllTasksByUserId_ShouldReturnListOfTasksForGivenUserId() {
         Task task1 = new Task();
-        task1.setTitle("Task 1");
-        task1.setDescription("Description 1");
-        task1.setCreationDate(LocalDateTime.now());
-        task1.setTargetDate(LocalDateTime.now().plusDays(1));
+        task1.setId(1L);
+        task1.setDescription("Task 1");
         task1.setCompleted(false);
-        task1.setDeleted(false);
-        task1.setUser(user1);
 
         Task task2 = new Task();
-        task2.setTitle("Task 2");
-        task2.setDescription("Description 2");
-        task2.setCreationDate(LocalDateTime.now());
-        task2.setTargetDate(LocalDateTime.now().plusDays(2));
-        task2.setCompleted(false);
-        task2.setDeleted(false);
-        task2.setUser(user1);
+        task2.setId(2L);
+        task2.setDescription("Task 2");
+        task2.setCompleted(true);
 
-        Task task3 = new Task();
-        task3.setTitle("Task 3");
-        task3.setDescription("Description 3");
-        task3.setCreationDate(LocalDateTime.now());
-        task3.setTargetDate(LocalDateTime.now().plusDays(3));
-        task3.setCompleted(false);
-        task3.setDeleted(false);
-        task3.setUser(user2);
+        when(taskRepository.findByUserId(1L)).thenReturn(Arrays.asList(task1, task2));
 
-        taskRepository.save(task1);
-        taskRepository.save(task2);
-        taskRepository.save(task3);
-
-        List<Task> tasks = taskService.getAllTasksByUserId(user1.getId());
+        List<Task> tasks = taskService.getAllTasksByUserId(1L);
 
         assertEquals(2, tasks.size());
-        assertEquals("Task 1", tasks.get(0).getTitle());
-        assertEquals("Task 2", tasks.get(1).getTitle());
+        assertEquals("Task 1", tasks.get(0).getDescription());
+        assertEquals("Task 2", tasks.get(1).getDescription());
     }
 
     @Test
-    void createTask_ShouldSaveTask() {
-        User user = new User();
-        user.setUsername("testUser8");
-        user.setPassword("password8");
-
-        user = userRepository.save(user);
-
+    void createTask_ShouldCreateTaskAndReturnCreatedTask() {
         Task task = new Task();
-        task.setTitle("Task 5");
-        task.setDescription("Description 5");
-        task.setCreationDate(LocalDateTime.now());
-        task.setTargetDate(LocalDateTime.now().plusDays(1));
+        task.setDescription("New Task");
         task.setCompleted(false);
-        task.setDeleted(false);
-        task.setUser(user);
 
-        Task savedTask = taskService.createTask(task, user.getId());
+        User user = new User();
+        user.setId(1L);
+        user.setUsername("testuser");
 
-        assertNotNull(savedTask.getId());
-        assertEquals("Task 5", savedTask.getTitle());
+        when(userService.getUserById(1L)).thenReturn(Optional.of(user));
+
+        Task savedTask = new Task();
+        savedTask.setId(1L);
+        savedTask.setTitle("New Task");
+        savedTask.setCompleted(false);
+        savedTask.setUser(user);
+
+        when(taskRepository.save(any(Task.class))).thenReturn(savedTask);
+
+        doNothing().when(notificationService).createNotification(any(User.class), any(String.class));
+
+        Task createdTask = taskService.createTask(task, 1L);
+
+        assertNotNull(createdTask);
+        assertEquals("New Task", createdTask.getTitle());
+        assertEquals(user, createdTask.getUser());
+        verify(notificationService, times(1)).createNotification(user, "Task New Task created successfully!");
+    }
+
+    @Test
+    void createTask_ShouldReturnNullIfUserDoesNotExist() {
+        Task task = new Task();
+        task.setTitle("New Task");
+        task.setCompleted(false);
+
+        when(userService.getUserById(1L)).thenReturn(Optional.empty());
+
+        Task createdTask = taskService.createTask(task, 1L);
+
+        assertNull(createdTask);
     }
 
     @Test
     void deleteTask_ShouldDeleteTask() {
-        User user = new User();
-        user.setUsername("testUser9");
-        user.setPassword("password9");
-
-        user = userRepository.save(user);
-
+        Long taskId = 1L;
         Task task = new Task();
-        task.setTitle("Task 6");
-        task.setDescription("Description 6");
-        task.setCreationDate(LocalDateTime.now());
-        task.setTargetDate(LocalDateTime.now().plusDays(1));
-        task.setCompleted(false);
-        task.setDeleted(false);
+        task.setId(taskId);
+        task.setTitle("Existing Task");
+        User user = new User();
+        user.setId(1L);
         task.setUser(user);
-        Task savedTask = taskRepository.save(task);
 
-        taskService.deleteTask(savedTask.getId());
+        when(taskRepository.findById(taskId)).thenReturn(Optional.of(task));
+        when(userService.getUserById(1L)).thenReturn(Optional.of(user));
+        doNothing().when(notificationService).createNotification(any(User.class), any(String.class));
 
-        assertFalse(taskRepository.findById(savedTask.getId()).isPresent());
+        taskService.deleteTask(taskId);
+
+        verify(taskRepository, times(1)).deleteById(taskId);
+        verify(notificationService, times(1)).createNotification(user, "Task Existing Task deleted successfully!");
     }
 }

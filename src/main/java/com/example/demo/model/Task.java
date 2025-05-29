@@ -29,26 +29,10 @@ public class Task {
     @JsonBackReference
     private User user;
 
-    public Task(Long id, String title, String description, LocalDateTime creationDate, LocalDateTime targetDate,
-                boolean completed, boolean deleted, User user) {
-        this.id = id;
-        this.title = title;
-        this.description = description;
-        this.creationDate = creationDate;
-        this.targetDate = targetDate;
-        this.completed = completed;
-        this.deleted = deleted;
-        this.user = user;
-    }
-
     public Task() {}
 
     public void setUser(User user) {
         this.user = user;
-    }
-
-    public Long getId() {
-        return id;
     }
 
     public String getTitle() {
@@ -71,23 +55,15 @@ public class Task {
         this.completed = completed;
     }
 
-    public void setDeleted(boolean deleted) {
-        this.deleted = deleted;
-    }
-
-    public void setTargetDate(LocalDateTime targetDate) {
-        this.targetDate = targetDate;
-    }
-
     public User getUser() {
         return user;
     }
 
-    public boolean isCompleted() {
-        return completed;
+    public void setId(Long id) {
+        this.id = id;
     }
 
-    public boolean isDeleted() {
-        return deleted;
+    public String getDescription() {
+        return description;
     }
 }

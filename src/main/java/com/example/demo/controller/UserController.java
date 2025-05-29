@@ -30,6 +30,10 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<User> registerUser(@RequestBody User user) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.registerUser(user));
+        User registeredUser = userService.registerUser(user);
+        if (registeredUser == null) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(registeredUser);
     }
 }

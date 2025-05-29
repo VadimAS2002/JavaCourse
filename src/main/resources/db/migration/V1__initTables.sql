@@ -1,10 +1,10 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL UNIQUE
 );
 
-CREATE TABLE tasks (
+CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE tasks (
     CONSTRAINT fk_tasks_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
     id SERIAL PRIMARY KEY,
     message TEXT NOT NULL,
     timeStamp TIMESTAMP NOT NULL,

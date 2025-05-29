@@ -58,4 +58,8 @@ public class Notification {
     public boolean isRead() {
         return read;
     }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 }

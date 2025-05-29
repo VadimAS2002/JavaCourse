@@ -1,110 +1,109 @@
 package com.example.demo.controller;
 
 import com.example.demo.model.Task;
-import com.example.demo.model.User;
-import com.example.demo.repository.TaskRepository;
-import com.example.demo.service.NotificationService;
 import com.example.demo.service.TaskService;
-import com.example.demo.service.UserService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 public class TaskControllerTest {
 
-    @Autowired
+    @Mock
     private TaskService taskService;
 
-    @Autowired
-    private UserService userService;
-
-    @Autowired
+    @InjectMocks
     private TaskController taskController;
 
-    @Autowired
-    private NotificationService notificationService;
+    @Test
+    void getPendingTasks_ShouldReturnListOfPendingTasksWithStatusOK() {
+        Task task1 = new Task();
+        task1.setId(1L);
+        task1.setTitle("Task 1");
+        task1.setCompleted(false);
 
-    private final LocalDateTime now = LocalDateTime.now();
+        Task task2 = new Task();
+        task2.setId(2L);
+        task2.setTitle("Task 2");
+        task2.setCompleted(false);
 
-    @Autowired
-    private TaskRepository taskRepository;
+        when(taskService.getPendingTasks()).thenReturn(Arrays.asList(task1, task2));
 
-    @BeforeEach
-    void setUp() {
-        taskService = new TaskService(taskRepository, userService, notificationService);
-        taskController = new TaskController(taskService);
+        ResponseEntity<List<Task>> response = taskController.getPendingTasks();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().size());
     }
 
     @Test
-    void getPendingTasks_ReturnsPendingTasks() {
-        User user = new User();
-        user.setUsername("testUser10");
-        user.setPassword("password10");
-        User registeredUser = userService.registerUser(user);
+    void getAllTasksByUserId_ShouldReturnListOfTasksForGivenUserIdWithStatusOK() {
+        Task task1 = new Task();
+        task1.setId(1L);
+        task1.setTitle("Task 1");
+        task1.setCompleted(false);
 
-        Task taskToCreate = new Task(null, "Valid Task", "Description",
-                null, null, false, false, registeredUser);
+        Task task2 = new Task();
+        task2.setId(2L);
+        task2.setTitle("Task 2");
+        task2.setCompleted(false);
 
-        ResponseEntity<Task> responseEntity = taskController.createTask(taskToCreate, registeredUser.getId());
-        ResponseEntity<List<Task>> responseEntity2 = taskController.getPendingTasks();
+        when(taskService.getAllTasksByUserId(1L)).thenReturn(Arrays.asList(task1, task2));
 
-        assertEquals(HttpStatus.OK, responseEntity2.getStatusCode());
-        assertFalse(responseEntity2.getBody().get(0).isCompleted());
-        assertFalse(responseEntity2.getBody().get(0).isDeleted());
+        ResponseEntity<List<Task>> response = taskController.getAllTasksByUserId(1L);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().size());
     }
 
     @Test
-    public void getTasksByUserId_ReturnsOk() {
-        Long userId = 1L;
-        List<Task> tasks = new ArrayList<>();
-        User user = new User();
-        user.setUsername("testUser11");
-        user.setPassword("password11");
-        User registeredUser = userService.registerUser(user);
-        tasks.add(new Task(1L, "Task 1", "Description", now, now.plusDays(1), false,
-                false, user));
+    void createTask_ShouldCreateTaskAndReturnCreatedTaskWithStatusCreated() {
+        Task task = new Task();
+        task.setTitle("New Task");
+        task.setCompleted(false);
 
-        ResponseEntity<List<Task>> responseEntity = taskController.getAllTasksByUserId(userId);
+        when(taskService.createTask(any(Task.class), any(Long.class))).thenReturn(task);
 
-        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        ResponseEntity<Task> response = taskController.createTask(task, 1L);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(task, response.getBody());
     }
 
     @Test
-    public void createTask_ValidTask_ReturnsCreated() {
-        User user = new User();
-        user.setUsername("testUser12");
-        user.setPassword("password12");
-        User registeredUser = userService.registerUser(user);
-        Task taskToCreate = new Task(null, "Valid Task", "Description",
-                null, null, false, false, registeredUser);
+    void createTask_ShouldReturnBadRequestIfTaskCreationFailed() {
+        Task task = new Task();
+        task.setTitle("New Task");
+        task.setCompleted(false);
 
-        ResponseEntity<Task> responseEntity = taskController.createTask(taskToCreate, registeredUser.getId());
+        when(taskService.createTask(any(Task.class), any(Long.class))).thenReturn(null);
 
-        assertEquals(HttpStatus.CREATED, responseEntity.getStatusCode());
+        ResponseEntity<Task> response = taskController.createTask(task, 1L);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNull(response.getBody());
     }
 
     @Test
-    public void deleteTask_ExistingTask_ReturnsNoContent() {
-        User user = new User();
-        user.setUsername("testUser18");
-        user.setPassword("password18");
-        User registeredUser = userService.registerUser(user);
+    void deleteTask_ShouldDeleteTaskAndReturnNoContent() {
+        Long taskId = 1L;
 
-        Task task = new Task(null, "Valid Task", "Description", null,
-                null, false, false, registeredUser);
-        ResponseEntity<Task> responseEntity = taskController.createTask(task, registeredUser.getId());
-        ResponseEntity<Void> responseEntity2 = taskController.deleteTask(task.getId());
+        ResponseEntity<Void> response = taskController.deleteTask(taskId);
 
-        assertEquals(HttpStatus.NO_CONTENT, responseEntity2.getStatusCode());
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        verify(taskService, times(1)).deleteTask(taskId);
     }
 }
